@@ -5,7 +5,28 @@ dotenv.config();
 
 let activePool = null;
 
-const getBaseConfig = () => {
+const isRemoteDb = () => {
+  const connectionUri = process.env.MYSQL_URL || process.env.DATABASE_URL;
+  if (connectionUri) {
+    return !connectionUri.includes('localhost') && !connectionUri.includes('127.0.0.1');
+  }
+  const host = process.env.MYSQLHOST || process.env.DB_HOST || 'localhost';
+  return host !== 'localhost' && host !== '127.0.0.1';
+};
+
+const getDatabaseConfig = (useSsl) => {
+  const connectionUri = process.env.MYSQL_URL || process.env.DATABASE_URL;
+  if (connectionUri) {
+    return {
+      uri: connectionUri,
+      ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+      waitForConnections: true,
+      connectTimeout: 20000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
+    };
+  }
+
   return {
     host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
     user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
@@ -15,30 +36,28 @@ const getBaseConfig = () => {
         : process.env.DB_PASSWORD || '',
     database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'cms_db',
     port: parseInt(process.env.MYSQLPORT || process.env.DB_PORT || '3306', 10),
+    ssl: useSsl ? { rejectUnauthorized: false } : undefined,
     waitForConnections: true,
-    connectTimeout: 20000, // 20 seconds timeout for fast fallbacks
+    connectTimeout: 20000,
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000,
   };
 };
 
 export const testConnection = async () => {
-  const baseConfig = getBaseConfig();
-  const host = baseConfig.host;
-  const isRemote = host !== 'localhost' && host !== '127.0.0.1';
+  const isRemote = isRemoteDb();
 
   // Attempt 1: Connect with SSL if remote
   if (isRemote) {
-    console.log(`ℹ️ Remote database detected (${host}). Attempting to connect with SSL...`);
+    const config = getDatabaseConfig(true);
+    const hostInfo = config.uri ? 'Connection URL' : config.host;
+    console.log(`ℹ️ Remote database detected (${hostInfo}). Attempting to connect with SSL...`);
     try {
-      const sslConfig = {
-        ...baseConfig,
-        ssl: { rejectUnauthorized: false },
+      activePool = mysql.createPool({
+        ...config,
         connectionLimit: 10,
-      };
-      activePool = mysql.createPool(sslConfig);
+      });
       
-      // Test the pool connection
       const connection = await activePool.getConnection();
       await connection.ping();
       connection.release();
@@ -55,15 +74,15 @@ export const testConnection = async () => {
   }
 
   // Attempt 2: Connect without SSL (fallback or local)
-  console.log(`ℹ️ Attempting to connect without SSL...`);
+  const config = getDatabaseConfig(false);
+  const hostInfo = config.uri ? 'Connection URL' : config.host;
+  console.log(`ℹ️ Attempting to connect to ${hostInfo} without SSL...`);
   try {
-    const noSslConfig = {
-      ...baseConfig,
+    activePool = mysql.createPool({
+      ...config,
       connectionLimit: isRemote ? 10 : 5,
-    };
-    activePool = mysql.createPool(noSslConfig);
+    });
     
-    // Test the pool connection
     const connection = await activePool.getConnection();
     await connection.ping();
     connection.release();
