@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const isProductionDb = !!process.env.MYSQLHOST;
+const host = process.env.MYSQLHOST || process.env.DB_HOST || 'localhost';
+const isProductionDb = host !== 'localhost' && host !== '127.0.0.1';
 
 const pool = mysql.createPool({
   host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',

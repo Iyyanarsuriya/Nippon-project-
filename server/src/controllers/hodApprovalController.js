@@ -7,10 +7,7 @@ import {
 import pool from '../config/db.js';
 import { validateLimits } from '../utils/validation.js';
 
-// Ensure table exists when module first loads
-ensureHodApprovalsTable().catch(err =>
-  console.error('HOD approvals table check failed:', err)
-);
+
 
 /**
  * GET /hod-approvals

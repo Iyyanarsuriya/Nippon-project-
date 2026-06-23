@@ -3,7 +3,7 @@ import { broadcast } from '../config/websocket.js';
 import { triggerEffectivenessQAAlert } from './effectivenessNotificationModel.js';
 
 // Self-healing: Ensure effectiveness tables exist on load
-const ensureTablesExist = async () => {
+export const ensureTablesExist = async () => {
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS effectiveness_logs (
