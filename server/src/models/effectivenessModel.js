@@ -49,8 +49,8 @@ const ensureTablesExist = async () => {
   }
 };
 
-// Execute immediately when model is loaded
-ensureTablesExist();
+
+
 
 
 const parseToISODate = (dateStr) => {
