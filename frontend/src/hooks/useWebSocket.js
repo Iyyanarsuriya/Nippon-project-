@@ -10,7 +10,7 @@ export const useWebSocket = (onMessageCallback) => {
 
   useEffect(() => {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.hostname}:5001/ws`;
+    const wsUrl = `${wsProtocol}//${window.location.hostname}:5002/ws`;
     
     let socket;
     let reconnectTimeout;
